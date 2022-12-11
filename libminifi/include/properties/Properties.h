@@ -1,0 +1,172 @@
+/**
+ * @file Configure.h
+ * Configure class declaration
+ *
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+#ifndef LIBMINIFI_INCLUDE_PROPERTIES_PROPERTIES_H_
+#define LIBMINIFI_INCLUDE_PROPERTIES_PROPERTIES_H_
+
+#include <map>
+#include <memory>
+#include <optional>
+#include <string>
+#include <utility>
+#include <vector>
+
+#include "core/logging/Logger.h"
+#include "utils/ChecksumCalculator.h"
+#include "utils/StringUtils.h"
+
+namespace org {
+namespace apache {
+namespace nifi {
+namespace minifi {
+
+enum class PropertyChangeLifetime {
+  TRANSIENT,  // the changed value will not be committed to disk
+  PERSISTENT  // the changed value will be written to the source file
+};
+
+class Properties {
+  struct PropertyValue {
+    std::string persisted_value;
+    std::string active_value;
+    bool need_to_persist_new_value{false};
+  };
+
+ public:
+  explicit Properties(std::string name = "");
+
+  virtual ~Properties() = default;
+
+  virtual const std::string& getName() const {
+    return name_;
+  }
+
+  // Clear the load config
+  void clear() {
+    std::lock_guard<std::mutex> lock(mutex_);
+    properties_.clear();
+  }
+  void set(const std::string& key, const std::string& value) {
+    set(key, value, PropertyChangeLifetime::PERSISTENT);
+  }
+  // Set the config value
+  virtual void set(const std::string &key, const std::string &value, PropertyChangeLifetime lifetime) {
+    auto active_value = utils::StringUtils::replaceEnvironmentVariables(value);
+    std::lock_guard<std::mutex> lock(mutex_);
+    bool should_persist = lifetime == PropertyChangeLifetime::PERSISTENT;
+    if (auto it = properties_.find(key); it != properties_.end()) {
+      // update an existing property
+      it->second.active_value = active_value;
+      if (should_persist) {
+        it->second.persisted_value = value;
+        it->second.need_to_persist_new_value = true;
+      }
+    } else {
+      // brand new property
+      properties_[key] = PropertyValue{value, active_value, should_persist};
+    }
+
+    if (should_persist) {
+      dirty_ = true;
+    }
+  }
+  // Check whether the config value existed
+  bool has(const std::string& key) const {
+    std::lock_guard<std::mutex> lock(mutex_);
+    return properties_.count(key) > 0;
+  }
+  /**
+   * Returns the config value by placing it into the referenced param value
+   * @param key key to look up
+   * @param value value in which to place the map's stored property value
+   * @returns true if found, false otherwise.
+   */
+  bool getString(const std::string &key, std::string &value) const;
+
+  /**
+   * Returns the configuration value or an empty string.
+   * @return value corresponding to key or empty value.
+   */
+  int getInt(const std::string &key, int default_value) const;
+
+  /**
+   * Returns the config value.
+   *
+   * @param key key to look up
+   * @returns the value if found, nullopt otherwise.
+   */
+  std::optional<std::string> getString(const std::string& key) const;
+
+  /**
+   * Load configure file
+   * @param fileName path of the configuration file RELATIVE to MINIFI_HOME set by setHome()
+   */
+  void loadConfigureFile(const char *fileName);
+
+  // Set the determined MINIFI_HOME
+  void setHome(std::string minifiHome) {
+    minifi_home_ = std::move(minifiHome);
+  }
+
+  std::vector<std::string> getConfiguredKeys() const {
+    std::vector<std::string> keys;
+    for (auto &property : properties_) {
+      keys.push_back(property.first);
+    }
+    return keys;
+  }
+
+  // Get the determined MINIFI_HOME
+  std::string getHome() const {
+    return minifi_home_;
+  }
+
+  virtual bool commitChanges();
+
+  utils::ChecksumCalculator& getChecksumCalculator() { return checksum_calculator_; }
+
+  std::string getFilePath() const;
+
+ protected:
+  std::map<std::string, std::string> getProperties() const;
+
+ private:
+  std::map<std::string, PropertyValue> properties_;
+
+  bool dirty_{false};
+
+  std::string properties_file_;
+
+  utils::ChecksumCalculator checksum_calculator_;
+
+  // Mutex for protection
+  mutable std::mutex mutex_;
+  // Logger
+  std::shared_ptr<core::logging::Logger> logger_;
+  // Home location for this executable
+  std::string minifi_home_;
+
+  std::string name_;
+};
+
+}  // namespace minifi
+}  // namespace nifi
+}  // namespace apache
+}  // namespace org
+#endif  // LIBMINIFI_INCLUDE_PROPERTIES_PROPERTIES_H_

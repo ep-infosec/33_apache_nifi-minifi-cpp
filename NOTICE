@@ -1,0 +1,115 @@
+Apache NiFi MiNiFi C++
+Copyright 2022 The Apache Software Foundation
+
+This product includes software developed at
+The Apache Software Foundation (http://www.apache.org/).
+
+This includes derived works from the Apache NiFi (ALv2 Licensed) project (https://github.com/apache/nifi):
+Copyright 2022 The Apache Software Foundation
+The derived and original works are listed below:
+    JniUnpacker.java is based on NarUnpacker.java.
+    JniClassLoader is based, predominately, on NarClassdLoader with major variations.
+    JniComponentLogger extends ComponentLog
+    JniFlowFile extends and is based on FlowFile
+    JniInitializationContext extends and is based on ProcessorInitializationContext
+    JniProcessContext extends and is based on ProcessContext and ControllerServiceLookup
+    JniProcessSession extends and is based on ProcessSession
+    JniProcessSessionFactory extends and is based on ProcessSessionFactory
+    JniProvenanceReporter extends and is based on ProvenanceReporter
+    SFTPTestServer extends and is based on SSHTestServer
+
+This includes derived works from the cURL (MIT/X-style licensed) project (https://github.com/curl/curl):
+Copyright (c) 1996 - 2022, Daniel Stenberg, <daniel@haxx.se>, and many contributors, see the THANKS file.
+The derived work is adapted from
+  CMake/FindLibSSH2.cmake and can be found in cmake/libssh2/sys/FindLibSSH2.cmake
+
+This includes derived works from the CMake (BSD 3-Clause licensed) project (https://github.com/Kitware/CMake):
+Copyright 2000-2022 Kitware, Inc. and Contributors
+The derived work is adapted from
+  Modules/FindPatch.cmake
+and can be found in cmake/FindPatch.cmake
+
+This includes derived works from the 'POCO C++ Libraries' (BSL-1.0 licensed) project (https://github.com/pocoproject/poco):
+The derived work is adapted from
+  cmake/PocoMacros.cmake and can be found in cmake/FindMessageCompiler.cmake
+
+This bundles the 'AWS SDK for C++' (ALv2 licensed) project (https://github.com/aws/aws-sdk-cpp/), which includes the following NOTICE:
+AWS SDK for C++
+Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+
+This product includes software developed by
+Amazon Technologies, Inc (http://www.amazon.com/).
+
+This bundles the 'Azure SDK for C++' (MIT licensed) project (https://github.com/Azure/azure-sdk-for-cpp), which includes the following NOTICE:
+Copyright (c) Microsoft Corporation.
+
+**********************
+THIRD PARTY COMPONENTS
+**********************
+This software includes third party software subject to the following copyrights:
+- Very fast, header-only/compiled, C++ logging library from spdlog - Copyright (c) 2016 Gabi Melman
+- An open-source formatting library for C++ from fmt - Copyright (c) 2012 - present, Victor Zverovich
+- XML parsing and utility functions from TinyXml2 - Lee Thomason
+- JSON parsing and utility functions from JsonCpp - Copyright (c) 2007-2010 Baptiste Lepilleur
+- OpenSSL build files for cmake used for Android Builds - Copyright (C) 2007-2012 LuaDist and Copyright (C) 2013 Brian Sidebotham
+- Android tool chain cmake build files - Copyright (c) 2010-2011, Ethan Rublee and Copyright (c) 2011-2014, Andrey Kamaev
+- gsl-lite - Copyright (c) 2015-2019 Martin Moene, Copyright (c) 2019-2021 Moritz Beutel and Copyright (c) 2015-2018 Microsoft Corporation. All rights reserved.
+- libsodium - Copyright (c) 2013 - 2022 Frank Denis under the ISC software license
+- IANA timezone database - public domain
+- date (HowardHinnant/date) - notices below
+- range-v3 - Eric Niebler and other contributors
+- expected-lite - Copyright (C) 2016-2020 Martin Moene.
+- asio - Copyright (c) 2003-2022 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+- TartanLlama/expected - public domain, thanks to Sy Brand
+- libyaml - Copyright (c) 2006-2016 Kirill Simonov, Copyright (c) 2017-2020 Ingy döt Net
+- libwebsockets - Copyright (C) 2010 - 2022 Andy Green <andy@warmcat.com>
+- kubernetes-client/c - Brendan Burns, Hui Yu and other contributors
+- nlohmann json - Copyright (c) 2013-2022 Niels Lohmann
+- abseil-cpp - Google Inc.
+- crc32c - Google Inc., Fangming Fang, Vadim Skipin, Rodrigo Tobar, Harry Mallon
+- prometheus-cpp - Copyright (c) 2016-2021 Jupp Mueller, Copyright (c) 2017-2022 Gregor Jasny
+
+The licenses for these third party components are included in LICENSE.txt
+
+Copyright notices of the date project:
+// Copyright (c) 2015, 2016, 2017 Howard Hinnant
+// Copyright (c) 2015 Ville Voutilainen
+// Copyright (c) 2016, 2017, 2019 Jiangang Zhuang
+// Copyright (c) 2016 Adrian Colomitchi
+// Copyright (c) 2016 Alexander Kormanovsky
+// Copyright (c) 2017 Aaron Bishop
+// Copyright (c) 2017 Florian Dang
+// Copyright (c) 2017 Nicolas Veloz Savino
+// Copyright (c) 2017 Paul Thompson
+// Copyright (c) 2017, 2018, 2019 Tomasz Kamiński
+// Copyright (c) 2019 Asad. Gharighi
+
+range-v3:
+(C) Copyright Kevlin Henney and Dave Abrahams 1999.
+Copyright 2005 - 2007 Adobe Systems Incorporated
+Copyright 2019-present Christopher Di Bella
+Copyright Andrew Sutton 2014
+Copyright Andrey Diduh 2019
+Copyright Barry Revzin 2019-present
+Copyright (c) 1994 Hewlett-Packard Company
+Copyright (c) 1996 Silicon Graphics Computer Systems, Inc.
+Copyright (c) 2009 Alexander Stepanov and Paul McJones
+Copyright (c) 2013 GitHub, Inc.
+Copyright (c) 2015 Microsoft Corporation. All rights reserved.
+Copyright (c) 2018-present, Facebook, Inc.
+Copyright (c) 2020-present, Google LLC.
+Copyright Casey Carter 2015-present
+Copyright Eric Niebler 2004,2013-present
+Copyright Filip Matner 2015,2017
+Copyright Gonzalo Brito Gadeschi 2014-2017
+Copyright Google LLC 2020-present
+Copyright Jeff Garland 2017
+Copyright Johel Guerrero 2019
+Copyright Louis Dionne 2013-2017
+Copyright Luis Martinez de Bartolome Izquierdo 2016
+Copyright Michel Morin 2014
+Copyright MikeGitb 2018-present
+Copyright Mitsutaka Takeda 2018-present
+Copyright Rostislav Khlebnikov 2017
+Copyright Tobias Mayer 2016
+Copyright Tomislav Ivek 2015-2016

@@ -1,0 +1,126 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements. See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership. The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License. You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied. See the License for the
+# specific language governing permissions and limitations
+# under the License.
+#
+
+ARG BASE_ALPINE_IMAGE="alpine:3.13"
+
+# Build image
+FROM ${BASE_ALPINE_IMAGE} AS build
+LABEL maintainer="Apache NiFi <dev@nifi.apache.org>"
+
+ARG MINIFI_VERSION
+ARG UID=1000
+ARG GID=1000
+
+# MINIFI_OPTIONS will be passed directly to cmake
+# use it to define cmake options (e.g. -DENABLE_AWS=ON -DENABLE_AZURE=ON)
+ARG MINIFI_OPTIONS=""
+ARG CMAKE_BUILD_TYPE=Release
+ARG DOCKER_SKIP_TESTS=ON
+
+# Install the system dependencies needed for a build
+RUN apk --no-cache add gcc \
+  g++ \
+  make \
+  bison \
+  flex \
+  flex-dev \
+  linux-headers \
+  maven \
+  openjdk8-jre-base \
+  openjdk8 \
+  autoconf \
+  automake \
+  libtool \
+  curl-dev \
+  cmake \
+  git \
+  patch \
+  libpcap-dev \
+  libpng-dev \
+  libusb-dev \
+  gpsd-dev \
+  python3-dev \
+  boost-dev \
+  doxygen \
+  ccache \
+  lua-dev
+
+ENV USER minificpp
+ENV MINIFI_BASE_DIR /opt/minifi
+ENV JAVA_HOME /usr/lib/jvm/default-jvm
+ENV PATH ${PATH}:/usr/lib/jvm/default-jvm/bin
+ENV MINIFI_HOME $MINIFI_BASE_DIR/nifi-minifi-cpp-${MINIFI_VERSION}
+ENV MINIFI_VERSION ${MINIFI_VERSION}
+
+# Setup minificpp user
+RUN addgroup -g ${GID} ${USER} && adduser -u ${UID} -D -G ${USER} -g "" ${USER} && \
+    install -d -o ${USER} -g ${USER} ${MINIFI_BASE_DIR}
+COPY --chown=${USER}:${USER} . ${MINIFI_BASE_DIR}
+RUN if [ -d "${MINIFI_BASE_DIR}/.ccache" ]; then mv ${MINIFI_BASE_DIR}/.ccache /home/${USER}/.ccache; fi
+
+USER ${USER}
+
+ENV PATH /usr/lib/ccache/bin:${PATH}
+RUN mkdir ${MINIFI_BASE_DIR}/build
+WORKDIR ${MINIFI_BASE_DIR}/build
+RUN cmake -DSTATIC_BUILD= -DSKIP_TESTS=${DOCKER_SKIP_TESTS} ${MINIFI_OPTIONS} -DAWS_ENABLE_UNITY_BUILD=OFF -DEXCLUDE_BOOST=ON -DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}" .. && \
+    make -j "$(nproc)" package && \
+    tar -xzvf "${MINIFI_BASE_DIR}/build/nifi-minifi-cpp-${MINIFI_VERSION}.tar.gz" -C "${MINIFI_BASE_DIR}"
+
+
+# Release image
+FROM ${BASE_ALPINE_IMAGE} AS release
+LABEL maintainer="Apache NiFi <dev@nifi.apache.org>"
+
+ARG UID=1000
+ARG GID=1000
+ARG MINIFI_VERSION
+
+ARG MINIFI_OPTIONS
+
+# Add testing repo for rocksdb
+RUN echo 'http://dl-cdn.alpinelinux.org/alpine/edge/testing' >> /etc/apk/repositories
+
+ENV USER minificpp
+ENV MINIFI_BASE_DIR /opt/minifi
+ENV MINIFI_HOME ${MINIFI_BASE_DIR}/minifi-current
+ENV MINIFI_VERSIONED_HOME ${MINIFI_BASE_DIR}/nifi-minifi-cpp-${MINIFI_VERSION}
+ENV JAVA_HOME /usr/lib/jvm/default-jvm
+ENV PATH ${PATH}:/usr/lib/jvm/default-jvm/bin
+
+RUN addgroup -g ${GID} ${USER} && adduser -u ${UID} -D -G ${USER} -g "" ${USER} && \
+    install -d -o ${USER} -g ${USER} ${MINIFI_BASE_DIR} && ln -s ${MINIFI_VERSIONED_HOME} ${MINIFI_HOME} && \
+    apk add --no-cache libstdc++ tzdata alpine-conf && \
+    if echo "$MINIFI_OPTIONS" | grep -q "ENABLE_GPS=ON"; then apk add --no-cache gpsd; fi && \
+    if echo "$MINIFI_OPTIONS" | grep -q "ENABLE_JNI=ON"; then apk add --no-cache openjdk8-jre-base; fi && \
+    if echo "$MINIFI_OPTIONS" | grep -q "ENABLE_PCAP=ON"; then apk add --no-cache libpcap; fi && \
+    if echo "$MINIFI_OPTIONS" | grep -q "ENABLE_USB_CAMERA=ON"; then apk add --no-cache libpng libusb; fi && \
+    if echo "$MINIFI_OPTIONS" | grep -q "ENABLE_OPENCV=ON" || echo "$MINIFI_OPTIONS" | grep -q "ENABLE_BUSTACHE=ON"; then apk add --no-cache boost; fi && \
+    if echo "$MINIFI_OPTIONS" | grep -q "ENABLE_SCRIPTING=ON" && echo "$MINIFI_OPTIONS" | grep -q "ENABLE_LUA_SCRIPTING=ON"; then apk add --no-cache lua; fi && \
+    if echo "$MINIFI_OPTIONS" | grep -q "ENABLE_SCRIPTING=ON" && echo "$MINIFI_OPTIONS" | grep -q "DISABLE_PYTHON_SCRIPTING=OFF"; then apk add --no-cache python3; fi
+
+# Copy built minifi distribution from builder
+COPY --from=build --chown=${USER}:${USER} ${MINIFI_VERSIONED_HOME} ${MINIFI_HOME}
+COPY --from=build --chown=${USER}:${USER} ${MINIFI_BASE_DIR}/docker/conf/minifi-log.properties ${MINIFI_HOME}/conf/minifi-log.properties
+RUN setup-timezone -z UTC
+
+USER ${USER}
+WORKDIR ${MINIFI_HOME}
+
+# Start MiNiFi CPP in the foreground
+CMD ["./bin/minifi.sh", "run"]
